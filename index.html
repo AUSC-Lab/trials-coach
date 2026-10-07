@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1B3A66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AUSC Trials">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>AUSC Trials 2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<script src="config.js"></script>
+<style>
+/* Layout: one narrow column, sticky age-group bar, list -> player card. Pitch-side: big targets, high contrast. */
+:root {
+  --bg: #F2F4F1; --surface: #FFFFFF; --surface-2: #E7ECE6; --ink: #14211A; --muted: #56655C; --faint: #87948B;
+  --line: #D3DBD2; --accent: #1F4E8C; --accent-ink: #FFFFFF; --accent-soft: #DCE6F4;
+  --yes: #1D7A45; --yes-bg: #D9F1E2; --maybe: #8F5B00; --maybe-bg: #FBEDC4; --no: #A8213A; --no-bg: #FADDE2;
+  --shadow: 0 1px 2px rgba(20,33,26,.06), 0 4px 16px rgba(20,33,26,.06);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0E1511; --surface: #16201A; --surface-2: #1F2B24; --ink: #E6EDE8; --muted: #A1AFA6; --faint: #6E7C73;
+  --line: #2B3730; --accent: #8DB3EE; --accent-ink: #0E1511; --accent-soft: #1E2C40;
+  --yes: #63D393; --yes-bg: #153522; --maybe: #F0C255; --maybe-bg: #392D10; --no: #F28C9C; --no-bg: #3B1720;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 18px rgba(0,0,0,.25); color-scheme: dark; } }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; }
+
+.top { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 12px 6px; }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: .01em; text-transform: uppercase; line-height: 1; }
+.brand h1 span { color: var(--accent); }
+.who { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.who button { border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; padding: 4px 0; }
+.groups { display: flex; gap: 6px; overflow-x: auto; padding-block: 6px 12px; scrollbar-width: none; }
+.groups::-webkit-scrollbar { display: none; }
+.g { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px 5px; min-height: 40px;
+  font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 6px; }
+.g small { font-family: var(--body); font-size: 12px; color: var(--muted); font-weight: 500; }
+.g[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.g[aria-pressed="true"] small { color: var(--bg); opacity: .75; }
+
+.install { margin-block: 12px 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; display: flex; gap: 10px; align-items: center; }
+.install span { flex: 1; min-width: 0; }
+.install button { border: 0; border-radius: 8px; min-height: 36px; padding: 0 12px; font-weight: 600; }
+.install .go { background: var(--accent); color: var(--accent-ink); }
+.install .x { background: transparent; color: var(--muted); font-size: 18px; padding: 0 6px; }
+.banner { margin-block: 12px 0; padding: 10px 12px; border-radius: 10px; background: var(--maybe-bg); color: var(--maybe); font-size: 14px; }
+
+/* Passcode screen */
+.gate { min-height: 100vh; display: grid; place-items: center; padding-block: 32px; }
+.gate form { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+.gate h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 40px; text-transform: uppercase; line-height: .95; }
+.gate h1 span { color: var(--accent); }
+.gate p { margin: 0; color: var(--muted); }
+
+.tools { display: flex; flex-direction: column; gap: 10px; padding-block: 14px 8px; }
+.search { position: relative; }
+.search input { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 10px 14px 10px 40px; font-size: 17px; }
+.search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--faint); }
+.row2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; min-height: 34px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 5px 12px; min-height: 34px; font-size: 14px; color: var(--muted); font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.summary { font-size: 13px; color: var(--muted); padding-block: 4px 8px; font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.list { list-style: none; margin: 0; padding: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
+.prow { width: 100%; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; text-align: left;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 12px 8px 8px; min-height: 64px; }
+.prow:active { background: var(--surface-2); }
+.who2 { min-width: 0; display: flex; flex-direction: column; }
+.nm { font-weight: 600; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.right { display: flex; align-items: center; gap: 6px; }
+.notedot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.warn { color: var(--maybe); font-weight: 700; font-size: 14px; }
+
+.bib { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 24px; line-height: 1;
+  background: var(--bibc, transparent); color: var(--bibt, var(--faint)); border: 2px dashed var(--line); font-variant-numeric: tabular-nums; }
+.bib.has { border: 1px solid rgba(0,0,0,.15); }
+.bib.att { border: 2px solid var(--accent); color: var(--accent); font-size: 22px; }
+.bib.big { width: 76px; height: 76px; font-size: 44px; border-radius: 14px; }
+
+.pill { font-size: 13px; font-weight: 600; border-radius: 999px; padding: 3px 10px; }
+.pill.yes { background: var(--yes-bg); color: var(--yes); }
+.pill.maybe { background: var(--maybe-bg); color: var(--maybe); }
+.pill.no { background: var(--no-bg); color: var(--no); }
+.pill.offer { background: var(--yes); color: var(--surface); }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 16px; border: 1px dashed var(--line); border-radius: 14px; margin-top: 8px; }
+.empty strong { display: block; color: var(--ink); font-size: 17px; margin-bottom: 4px; }
+.addbtn { width: 100%; min-height: 50px; border: 1px dashed var(--accent); background: transparent; color: var(--accent); border-radius: 12px; font-weight: 600; margin-block: 4px 28px; }
+.linkbtn { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 0; font-size: 13px; }
+
+.back { border: 0; background: none; color: var(--accent); font-weight: 600; padding: 14px 0 8px; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
+.hero { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px; align-items: start; padding-block: 4px 16px; }
+.hero h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 38px; line-height: 1.02; text-wrap: balance; overflow-wrap: anywhere; }
+.facts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.fact { display: inline-flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; min-width: 88px; }
+.fact b { font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.fact span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.flag { font-size: 13px; background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: 3px 8px; }
+.flag.alert { background: var(--maybe-bg); color: var(--maybe); font-weight: 600; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.card h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field > .lab { font-size: 14px; font-weight: 600; }
+.toggles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+.tg { min-height: 56px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-weight: 600; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; text-align: left; line-height: 1.15; }
+.tg .tick { width: 22px; height: 22px; flex: 0 0 22px; border-radius: 6px; border: 2px solid var(--faint); display: grid; place-items: center; font-size: 14px; }
+.tg[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.tg[aria-pressed="true"] .tick { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tg[aria-pressed="true"] .tick::after { content: "✓"; }
+.tg.offer[aria-pressed="true"] { background: var(--yes-bg); border-color: var(--yes); color: var(--yes); }
+.tg.offer[aria-pressed="true"] .tick { background: var(--yes); border-color: var(--yes); color: var(--surface); }
+.swatches { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.sw { min-height: 46px; border-radius: 10px; border: 1px solid rgba(0,0,0,.15); background: var(--bibc); color: var(--bibt); font-weight: 600; font-size: 14px; position: relative; }
+.sw[aria-checked="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.sw[aria-checked="true"]::after { content: "✓"; position: absolute; top: 3px; right: 7px; font-size: 13px; }
+.numrow { display: flex; gap: 10px; align-items: center; }
+.numrow input { width: 120px; min-height: 52px; font-family: var(--display); font-weight: 700; font-size: 30px; text-align: center; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); font-variant-numeric: tabular-nums; }
+.clear { border: 1px solid var(--line); background: transparent; border-radius: 10px; min-height: 44px; padding: 0 12px; color: var(--muted); font-size: 14px; }
+.status3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.status3 button { min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-weight: 600; font-size: 16px; }
+.status3 button[data-v="Yes"][aria-checked="true"] { background: var(--yes-bg); color: var(--yes); border-color: var(--yes); }
+.status3 button[data-v="Maybe"][aria-checked="true"] { background: var(--maybe-bg); color: var(--maybe); border-color: var(--maybe); }
+.status3 button[data-v="No"][aria-checked="true"] { background: var(--no-bg); color: var(--no); border-color: var(--no); }
+textarea { width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); padding: 10px 12px; font-size: 16px; resize: vertical; }
+.dup { font-size: 14px; color: var(--maybe); background: var(--maybe-bg); border-radius: 8px; padding: 6px 10px; }
+.saved { font-size: 13px; color: var(--muted); min-height: 1.4em; }
+
+.details { padding-block: 22px 40px; display: flex; flex-direction: column; gap: 14px; }
+.details h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); font-weight: 600; }
+.dl { display: grid; grid-template-columns: 128px minmax(0,1fr); gap: 8px 14px; margin: 0; font-size: 14px; }
+.dl dt { color: var(--faint); }
+.dl dd { margin: 0; color: var(--muted); min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.phone { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.phone .num { color: var(--ink); font-variant-numeric: tabular-nums; user-select: all; }
+.mini { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 2px 10px; font-size: 13px; color: var(--muted); min-height: 30px; text-decoration: none; display: inline-flex; align-items: center; }
+
+.form { display: flex; flex-direction: column; gap: 14px; padding-block: 8px 40px; }
+.form input, .gate input { min-height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 8px 12px; font-size: 17px; width: 100%; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.primary { min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 17px; }
+.primary:disabled { opacity: .6; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.err { color: var(--no); font-size: 14px; }
+
+@media (max-width: 420px) {
+  .dl { grid-template-columns: 1fr; gap: 2px; }
+  .dl dd { margin-bottom: 8px; }
+  .hero h2 { font-size: 32px; }
+  .bib.big { width: 64px; height: 64px; font-size: 36px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .prow, .g, .chip, .sw, .status3 button, .tg { transition: background-color .12s, border-color .12s; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap gate" id="gate">
+  <form id="gateForm" novalidate>
+    <h1>AUSC <span>Trials</span> 2027</h1>
+    <p>Enter the coach passcode from the trials organiser.</p>
+    <div class="field"><label for="gCode">Passcode</label><input id="gCode" autocomplete="off" autocapitalize="off"></div>
+    <div class="field"><label for="gName">Your name</label><input id="gName" autocomplete="name" placeholder="Shown next to your edits"></div>
+    <div class="err" id="gErr" hidden></div>
+    <button class="primary" id="gGo" type="submit">Open trial lists</button>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <div class="top">
+    <div class="wrap">
+      <div class="brand">
+        <h1>AUSC <span>Trials</span> 2027</h1>
+        <div class="who"><span id="whoName"></span><button type="button" id="changeWho">Change</button></div>
+      </div>
+      <nav class="groups" id="groups" aria-label="Age group"></nav>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <div id="install" class="install" hidden><span id="installText"></span><button class="go" id="installGo" type="button" hidden>Install</button><button class="x" id="installX" type="button" aria-label="Hide">×</button></div>
+    <div id="banner" class="banner" hidden></div>
+
+    <section id="listView">
+      <div class="tools">
+        <div class="search">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6"/><path d="M13 13l5 5"/></svg>
+          <input id="q" type="search" placeholder="Name, or bib e.g. orange 15" autocomplete="off" aria-label="Search players">
+        </div>
+        <div class="row2">
+          <div class="chips" id="filters" role="group" aria-label="Filter">
+            <button class="chip" data-f="all" aria-pressed="true">All</button>
+            <button class="chip" data-f="att" aria-pressed="false">Attended</button>
+            <button class="chip" data-f="noatt" aria-pressed="false">Not attended</button>
+            <button class="chip" data-f="offer" aria-pressed="false">Offer</button>
+            <button class="chip" data-f="Yes" aria-pressed="false">Yes</button>
+            <button class="chip" data-f="Maybe" aria-pressed="false">Maybe</button>
+            <button class="chip" data-f="No" aria-pressed="false">No</button>
+          </div>
+          <div class="seg" role="group" aria-label="Sort">
+            <button data-s="name" aria-pressed="true">A–Z</button>
+            <button data-s="bib" aria-pressed="false">By bib</button>
+          </div>
+        </div>
+      </div>
+      <div class="summary"><span id="summary">&nbsp;</span><button class="linkbtn" id="refreshBtn" type="button">Refresh</button></div>
+      <ul class="list" id="list"></ul>
+      <div id="emptyState" class="empty"><strong>Loading the trial list</strong>Getting players from the club sheet.</div>
+      <button class="addbtn" id="addWalkin" hidden>+ Add a walk-in player</button>
+    </section>
+
+    <section id="detailView" hidden>
+      <button class="back" id="backBtn">‹ <span id="backLabel">Back</span></button>
+      <div class="hero">
+        <div style="min-width:0">
+          <h2 id="dName"></h2>
+          <div class="facts">
+            <div class="fact"><b id="dGroup"></b><span>Age group</span></div>
+            <div class="fact"><b id="dYob"></b><span>Born</span></div>
+          </div>
+          <div class="flags" id="dFlags"></div>
+        </div>
+        <div class="bib big" id="dBib" aria-hidden="true"></div>
+      </div>
+
+      <div class="card">
+        <h3>Trial notes</h3>
+        <div class="toggles">
+          <button type="button" class="tg" id="tAtt" aria-pressed="false"><span class="tick" aria-hidden="true"></span>Attended trials</button>
+          <button type="button" class="tg offer" id="tOffer" aria-pressed="false"><span class="tick" aria-hidden="true"></span>Offer position</button>
+        </div>
+        <div class="field">
+          <span class="lab" id="bibColLab">Bib colour</span>
+          <div class="swatches" id="swatches" role="radiogroup" aria-labelledby="bibColLab"></div>
+        </div>
+        <div class="field">
+          <label for="bibNo">Bib number</label>
+          <div class="numrow">
+            <input id="bibNo" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off">
+            <button class="clear" id="clearBib" type="button">Clear bib</button>
+          </div>
+          <div class="dup" id="dupWarn" hidden></div>
+        </div>
+        <div class="field">
+          <span class="lab" id="statusLab">Status</span>
+          <div class="status3" id="status3" role="radiogroup" aria-labelledby="statusLab">
+            <button type="button" data-v="Yes" role="radio" aria-checked="false">Yes</button>
+            <button type="button" data-v="Maybe" role="radio" aria-checked="false">Maybe</button>
+            <button type="button" data-v="No" role="radio" aria-checked="false">No</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="notes">Notes</label>
+          <textarea id="notes" placeholder="e.g. quick, strong left foot, try at left back"></textarea>
+        </div>
+        <div class="saved" id="saved" aria-live="polite"></div>
+      </div>
+
+      <div class="details">
+        <h3>From registration</h3>
+        <dl class="dl" id="dDetails"></dl>
+      </div>
+    </section>
+
+    <section id="walkinView" hidden>
+      <button class="back" id="wBack">‹ <span id="wBackLabel">Back</span></button>
+      <form class="form" id="wForm" novalidate>
+        <h2 style="margin:0;font-family:var(--display);font-size:32px;line-height:1">Walk-in player</h2>
+        <p class="hint" id="wHint"></p>
+        <div class="field"><label for="wName">Player name</label><input id="wName" autocomplete="off"></div>
+        <div class="two">
+          <div class="field"><label for="wYob">Year of birth</label><input id="wYob" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+          <div class="field"><label for="wPos">Position</label><input id="wPos" autocomplete="off"></div>
+        </div>
+        <div class="field"><label for="wParent">Parent / guardian</label><input id="wParent" autocomplete="off"></div>
+        <div class="field"><label for="wPhone">Parent phone</label><input id="wPhone" inputmode="tel" autocomplete="off"></div>
+        <div class="err" id="wErr" hidden></div>
+        <button class="primary" type="submit" id="wSave">Add player</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var BIBS = [
+    ["Orange","#F97316","#1A1206"],["Yellow","#FACC15","#1A1606"],["Green","#22C55E","#06180D"],["Blue","#2563EB","#FFFFFF"],
+    ["Red","#DC2626","#FFFFFF"],["Pink","#EC4899","#FFFFFF"],["White","#FFFFFF","#14211A"],["Grey","#9CA3AF","#111827"]
+  ];
+  var BIBMAP = {}; BIBS.forEach(function (b, i) { BIBMAP[b[0].toLowerCase()] = { name: b[0], bg: b[1], fg: b[2], order: i }; });
+  var POLL_MS = 20000;
+  var $ = function (id) { return document.getElementById(id); };
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  var S = {
+    code: store("ausc-code") || "", who: store("ausc-coach") || "",
+    groups: [], tab: store("ausc-tab") || "", players: new Map(), q: "", filter: "all", sort: store("ausc-sort") === "bib" ? "bib" : "name",
+    view: "list", current: null, pending: new Map(), inflight: new Map(), timers: new Map(), saveError: "", listScroll: 0, loading: false, loadedTab: ""
+  };
+
+  var API = String(window.AUSC_API_URL || "").trim();
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(API)) return Promise.reject(new Error("NO_API_URL"));
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 25000);
+    return fetch(API, {
+      method: "POST", redirect: "follow", signal: ctl ? ctl.signal : undefined,
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: fn, args: args })
+    }).then(function (r) { return r.text(); }).then(function (t) {
+      clearTimeout(timer);
+      var j; try { j = JSON.parse(t); } catch (e) { throw new Error("BAD_RESPONSE"); }
+      if (!j.ok) throw new Error(j.error || "ERROR");
+      return j.result;
+    }, function (e) { clearTimeout(timer); throw e; });
+  }
+  function errCode(e) {
+    var m = String((e && e.message) || e || "");
+    return /WRONG_CODE/.test(m) ? "code" : /NO_PASSCODE_SET/.test(m) ? "nocode" : /NOT_FOUND/.test(m) ? "gone"
+      : /NO_API_URL/.test(m) ? "noapi" : /BAD_RESPONSE/.test(m) ? "badapi" : "net";
+  }
+  function handleAuthError(e) {
+    var c = errCode(e);
+    if (c === "noapi") { showGate("Setup isn't finished: paste the Apps Script web app URL into config.js."); return true; }
+    if (c === "badapi") { showGate("The club sheet didn't answer properly. In Apps Script, check the deployment is a Web app with access for Anyone."); return true; }
+    if (c === "code" || c === "nocode") {
+      store("ausc-code", null); S.code = "";
+      showGate(c === "code" ? "That passcode didn't work. Check it with the trials organiser." : "The organiser hasn't set a passcode yet (Apps Script > Project Settings > Script Properties > PASSCODE).");
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- Gate ----------
+  function showGate(msg) {
+    $("app").hidden = true; $("gate").hidden = false;
+    $("gCode").value = S.code; $("gName").value = S.who;
+    $("gErr").hidden = !msg; $("gErr").textContent = msg || "";
+    $("gGo").disabled = false; $("gGo").textContent = "Open trial lists";
+  }
+  $("gateForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var code = $("gCode").value.trim(), who = $("gName").value.trim();
+    if (!code) { $("gErr").textContent = "Enter the passcode."; $("gErr").hidden = false; return; }
+    if (!who) { $("gErr").textContent = "Enter your name so other coaches can see who made each change."; $("gErr").hidden = false; return; }
+    $("gGo").disabled = true; $("gGo").textContent = "Opening…"; $("gErr").hidden = true;
+    S.code = code; S.who = who;
+    start();
+  });
+  $("changeWho").addEventListener("click", function () { showGate(""); });
+
+  function start() {
+    call("getGroups", S.code).then(function (groups) {
+      store("ausc-code", S.code); store("ausc-coach", S.who);
+      S.groups = groups;
+      if (!groups.some(function (g) { return g.tab === S.tab; })) {
+        var u13 = groups.filter(function (g) { return g.tab === "U13"; })[0];
+        S.tab = (u13 || groups[0]).tab;
+      }
+      $("gate").hidden = true; $("app").hidden = false;
+      $("whoName").textContent = S.who;
+      renderGroups(); loadGroup(false);
+    }, function (e) {
+      if (!handleAuthError(e)) showGate("Couldn't reach the club sheet. Check your connection and try again.");
+    });
+  }
+
+  // ---------- Data ----------
+  function labelOf(tab) { return tab.replace("-", "/"); }
+  function overlay(p) {
+    var inf = S.inflight.get(p.id), pend = S.pending.get(p.id);
+    if (inf) Object.assign(p, inf);
+    if (pend) Object.assign(p, pend);
+    return p;
+  }
+  function loadGroup(silent) {
+    var tab = S.tab;
+    if (!silent) { S.loading = true; S.players = new Map(); renderList(); }
+    return call("getGroup", S.code, tab).then(function (rows) {
+      if (tab !== S.tab) return;
+      var m = new Map(); rows.forEach(function (p) { m.set(p.id, overlay(p)); });
+      S.players = m; S.loading = false; S.loadedTab = tab; $("banner").hidden = true;
+      var g = S.groups.filter(function (x) { return x.tab === tab; })[0]; if (g) g.count = rows.length;
+      renderGroups();
+      if (S.view === "detail") renderDetail(false); else if (S.view === "list") renderList();
+    }, function (e) {
+      S.loading = false;
+      if (handleAuthError(e)) return;
+      if (!silent) renderList();
+      showBanner("Can't reach the club sheet right now. Changes you make will be retried.");
+    });
+  }
+  setInterval(function () {
+    if (!S.code || $("app").hidden || document.visibilityState !== "visible") return;
+    if (S.pending.size || S.inflight.size) return;
+    if (document.activeElement && (document.activeElement.id === "notes" || document.activeElement.id === "bibNo")) return;
+    loadGroup(true);
+  }, POLL_MS);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S.code && !$("app").hidden) loadGroup(true); });
+
+  function showBanner(t) { $("banner").textContent = t; $("banner").hidden = false; }
+
+  // ---------- Age groups ----------
+  function renderGroups() {
+    var nav = $("groups"); nav.textContent = "";
+    S.groups.forEach(function (g) {
+      var b = document.createElement("button");
+      b.className = "g"; b.type = "button"; b.setAttribute("aria-pressed", String(g.tab === S.tab));
+      b.appendChild(document.createTextNode(g.label));
+      if (g.count) { var sm = document.createElement("small"); sm.textContent = g.count; b.appendChild(sm); }
+      b.addEventListener("click", function () { setGroup(g.tab); });
+      nav.appendChild(b);
+      if (g.tab === S.tab) setTimeout(function () { try { b.scrollIntoView({ inline: "nearest", block: "nearest" }); } catch (e) {} }, 0);
+    });
+  }
+  function setGroup(tab) {
+    if (tab === S.tab && S.view === "list") return;
+    S.tab = tab; store("ausc-tab", tab); S.current = null;
+    showView("list"); window.scrollTo(0, 0);
+    renderGroups(); loadGroup(false);
+  }
+
+  // ---------- Helpers ----------
+  function bibInfo(p) { return BIBMAP[(p.bibColour || "").toLowerCase()] || null; }
+  function bibKey(p) { var b = bibInfo(p); var num = String(p.bibNo || "").trim(); return b && num ? b.name + " " + num : ""; }
+  function paintBib(el, p) {
+    var b = bibInfo(p); var num = String(p.bibNo || "");
+    el.classList.remove("has"); el.classList.remove("att");
+    if (b) { el.style.setProperty("--bibc", b.bg); el.style.setProperty("--bibt", b.fg); el.classList.add("has"); }
+    else { el.style.removeProperty("--bibc"); el.style.removeProperty("--bibt"); }
+    el.textContent = num;
+    if (!b && !num && p.attended) { el.classList.add("att"); el.textContent = "✓"; }
+    el.title = b ? b.name + (num ? " " + num : "") : (p.attended ? "Attended, no bib yet" : "Not marked attended");
+  }
+  function all() { return Array.from(S.players.values()); }
+  function dupOf(p) {
+    var key = bibKey(p); if (!key) return null;
+    return all().filter(function (o) { return o.id !== p.id && bibKey(o) === key; })[0] || null;
+  }
+  function matches(p, q) {
+    if (!q) return true;
+    var name = (p.name || "").toLowerCase(), col = (p.bibColour || "").toLowerCase(), num = String(p.bibNo || "");
+    return q.toLowerCase().split(/\s+/).filter(Boolean).every(function (t) {
+      if (/^\d+$/.test(t)) return num === t;
+      if (BIBMAP[t]) return col === t || name.indexOf(t) >= 0;
+      return name.indexOf(t) >= 0;
+    });
+  }
+  function infoParts(p) {
+    return String(p.info || "").split(" · ").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  // ---------- List ----------
+  function showView(v) {
+    S.view = v;
+    $("listView").hidden = v !== "list"; $("detailView").hidden = v !== "detail"; $("walkinView").hidden = v !== "walkin";
+  }
+  function renderList() {
+    var ps = all();
+    var att = 0, offers = 0, yes = 0, maybe = 0, no = 0;
+    ps.forEach(function (p) { if (p.attended) att++; if (p.offer) offers++; if (p.status === "Yes") yes++; if (p.status === "Maybe") maybe++; if (p.status === "No") no++; });
+    var rows = ps.filter(function (p) {
+      if (S.filter === "att" && !p.attended) return false;
+      if (S.filter === "noatt" && p.attended) return false;
+      if (S.filter === "offer" && !p.offer) return false;
+      if (["Yes","Maybe","No"].indexOf(S.filter) >= 0 && p.status !== S.filter) return false;
+      return matches(p, S.q);
+    });
+    rows.sort(function (a, b) {
+      if (S.sort === "bib") {
+        var ba = bibInfo(a), bb = bibInfo(b), oa = ba ? ba.order : 99, ob = bb ? bb.order : 99;
+        if (oa !== ob) return oa - ob;
+        var xa = parseInt(a.bibNo, 10), xb = parseInt(b.bibNo, 10);
+        if (!isNaN(xa) || !isNaN(xb)) { if (isNaN(xa)) return 1; if (isNaN(xb)) return -1; if (xa !== xb) return xa - xb; }
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
+    $("summary").textContent = !S.loading && ps.length
+      ? ps.length + " players · " + att + " attended · " + offers + (offers === 1 ? " offer · " : " offers · ") + yes + " yes · " + maybe + " maybe · " + no + " no"
+      : " ";
+
+    var ul = $("list"); ul.textContent = "";
+    rows.forEach(function (p) {
+      var li = document.createElement("li");
+      var b = document.createElement("button"); b.className = "prow"; b.type = "button";
+      var bib = document.createElement("span"); bib.className = "bib"; paintBib(bib, p);
+      var who = document.createElement("span"); who.className = "who2";
+      var nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.name;
+      var sub = document.createElement("span"); sub.className = "sub";
+      sub.textContent = [p.yob ? "Born " + p.yob : "", p.position || "", /Walk-in/.test(p.info || "") ? "Walk-in" : ""].filter(Boolean).join(" · ");
+      who.appendChild(nm); who.appendChild(sub);
+      var right = document.createElement("span"); right.className = "right";
+      if (dupOf(p)) { var w = document.createElement("span"); w.className = "warn"; w.textContent = "2×"; w.title = "Same bib as another player"; right.appendChild(w); }
+      if (p.notes) { var d = document.createElement("span"); d.className = "notedot"; d.title = "Has notes"; right.appendChild(d); }
+      if (p.offer) { var of = document.createElement("span"); of.className = "pill offer"; of.textContent = "Offer"; right.appendChild(of); }
+      if (p.status) { var pl = document.createElement("span"); pl.className = "pill " + p.status.toLowerCase(); pl.textContent = p.status; right.appendChild(pl); }
+      b.appendChild(bib); b.appendChild(who); b.appendChild(right);
+      b.addEventListener("click", function () { openPlayer(p.id); });
+      li.appendChild(b); ul.appendChild(li);
+    });
+
+    var es = $("emptyState"); es.textContent = "";
+    var strong = document.createElement("strong");
+    if (S.loading) { strong.textContent = "Loading " + labelOf(S.tab); es.appendChild(strong); es.appendChild(document.createTextNode("Getting players from the club sheet.")); es.hidden = false; }
+    else if (!ps.length) { strong.textContent = "No players in " + labelOf(S.tab) + " yet"; es.appendChild(strong); es.appendChild(document.createTextNode("Add walk-ins with the button below.")); es.hidden = false; }
+    else if (!rows.length) { strong.textContent = "No match"; es.appendChild(strong); es.appendChild(document.createTextNode("Try a first name, or a bib like “blue 7”.")); es.hidden = false; }
+    else es.hidden = true;
+    $("addWalkin").hidden = S.loading;
+  }
+
+  // ---------- Player card ----------
+  function openPlayer(id) {
+    S.listScroll = window.scrollY; S.current = id;
+    showView("detail"); renderDetail(true); window.scrollTo(0, 0);
+  }
+  function backToList() { S.current = null; showView("list"); renderList(); window.scrollTo(0, S.listScroll || 0); }
+  function addFlag(box, text, alert) { var f = document.createElement("span"); f.className = "flag" + (alert ? " alert" : ""); f.textContent = text; box.appendChild(f); }
+  function addRow(dl, label, value, node) {
+    if (!value && !node) return;
+    var dt = document.createElement("dt"); dt.textContent = label;
+    var dd = document.createElement("dd"); if (node) dd.appendChild(node); else dd.textContent = value;
+    dl.appendChild(dt); dl.appendChild(dd);
+  }
+  function selectText(el) { try { var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {} }
+  function phoneNode(num) {
+    var w = document.createElement("span"); w.className = "phone";
+    var s = document.createElement("span"); s.className = "num"; s.textContent = num; w.appendChild(s);
+    var c = document.createElement("button"); c.type = "button"; c.className = "mini"; c.textContent = "Copy";
+    c.addEventListener("click", function () {
+      var done = function () { c.textContent = "Copied"; setTimeout(function () { c.textContent = "Copy"; }, 1500); };
+      try { navigator.clipboard.writeText(num).then(done, function () { selectText(s); }); } catch (e) { selectText(s); }
+    });
+    w.appendChild(c);
+    var a = document.createElement("a"); a.className = "mini"; a.textContent = "Call"; a.href = "tel:" + num.replace(/[^\d+]/g, ""); w.appendChild(a);
+    return w;
+  }
+
+  function renderDetail(full) {
+    var p = S.players.get(S.current);
+    if (!p) { if (!S.loading) backToList(); return; }
+    $("backLabel").textContent = labelOf(S.tab) + " list";
+    $("dName").textContent = p.name;
+    $("dGroup").textContent = p.group || labelOf(S.tab);
+    $("dYob").textContent = p.yob || "–";
+    paintBib($("dBib"), p);
+
+    var parts = infoParts(p), longParts = [];
+    var fl = $("dFlags"); fl.textContent = "";
+    parts.forEach(function (t) {
+      if (t.length <= 44) addFlag(fl, t, /^Trialing for|Walk-in/.test(t)); else longParts.push(t);
+    });
+
+    var sw = $("swatches");
+    if (full || !sw.children.length) {
+      sw.textContent = "";
+      BIBS.forEach(function (b) {
+        var btn = document.createElement("button"); btn.type = "button"; btn.className = "sw"; btn.setAttribute("role", "radio");
+        btn.dataset.c = b[0]; btn.textContent = b[0];
+        btn.style.setProperty("--bibc", b[1]); btn.style.setProperty("--bibt", b[2]);
+        btn.addEventListener("click", function () {
+          var cur = S.players.get(S.current) || {};
+          var next = cur.bibColour === b[0] ? "" : b[0];
+          var patch = { bibColour: next }; if (next && !cur.attended) patch.attended = true;
+          localPatch(S.current, patch, 0);
+        });
+        sw.appendChild(btn);
+      });
+    }
+    Array.prototype.forEach.call(sw.children, function (b) { b.setAttribute("aria-checked", String(b.dataset.c === p.bibColour)); });
+    $("tAtt").setAttribute("aria-pressed", String(!!p.attended));
+    $("tOffer").setAttribute("aria-pressed", String(!!p.offer));
+    var bn = $("bibNo"); if (document.activeElement !== bn) bn.value = p.bibNo || "";
+    Array.prototype.forEach.call($("status3").children, function (b) { b.setAttribute("aria-checked", String(b.dataset.v === p.status)); });
+    var ta = $("notes"); if (document.activeElement !== ta) ta.value = p.notes || "";
+
+    var dup = dupOf(p);
+    $("dupWarn").hidden = !dup;
+    if (dup) $("dupWarn").textContent = bibKey(p) + " is also on " + dup.name + ".";
+    renderSaved();
+
+    var dl = $("dDetails"); dl.textContent = "";
+    addRow(dl, "Parent / guardian", p.parent || "Not given");
+    var ph = String(p.phone || "");
+    if (/\d{6,}/.test(ph.replace(/\s/g, ""))) addRow(dl, "Phone", null, phoneNode(ph));
+    else addRow(dl, "Contact", ph.replace(/^email /, "Email: "));
+    addRow(dl, "Position", p.position);
+    addRow(dl, "Playing history", p.history);
+    addRow(dl, "Parent's note", longParts.join("\n"));
+  }
+  function renderSaved() {
+    var id = S.current; if (!id) return;
+    var el = $("saved");
+    if (S.pending.has(id) || S.inflight.has(id)) { el.textContent = "Saving…"; return; }
+    if (S.saveError) { el.textContent = S.saveError; return; }
+    var p = S.players.get(id) || {};
+    el.textContent = p.updated ? "Saved · last edit " + p.updated : "Changes save to the club sheet automatically.";
+  }
+
+  // ---------- Saving (one request at a time per player) ----------
+  function localPatch(id, patch, delay) {
+    if (!id) return;
+    S.saveError = "";
+    var p = S.players.get(id); if (p) Object.assign(p, patch);
+    var cur = S.pending.get(id) || {}; Object.assign(cur, patch); S.pending.set(id, cur);
+    if (S.view === "detail") renderDetail(false);
+    clearTimeout(S.timers.get(id));
+    S.timers.set(id, setTimeout(function () { S.timers.delete(id); flush(id); }, delay || 0));
+  }
+  function flush(id) {
+    if (S.inflight.has(id)) return;
+    clearTimeout(S.timers.get(id)); S.timers.delete(id);
+    var patch = S.pending.get(id); if (!patch) return;
+    S.pending.delete(id); S.inflight.set(id, patch);
+    var tab = S.tab;
+    call("savePlayer", S.code, tab, id, patch, S.who).then(function (res) {
+      var p = S.players.get(id); if (p && res && res.updated) p.updated = res.updated;
+    }, function (e) {
+      if (handleAuthError(e)) return;
+      var c = errCode(e);
+      if (c === "gone") S.saveError = "This player is no longer in the club sheet. Tap Refresh.";
+      else {
+        S.saveError = "Not saved yet. Retrying…";
+        var back = S.pending.get(id) || {}; S.pending.set(id, Object.assign({}, patch, back));
+        S.timers.set(id, setTimeout(function () { S.timers.delete(id); flush(id); }, 5000));
+      }
+    }).then(function () {
+      S.inflight.delete(id);
+      if (S.pending.has(id) && !S.timers.has(id)) flush(id);
+      if (S.current === id && S.view === "detail") renderDetail(false);
+      if (S.view === "list") renderList();
+    });
+  }
+
+  // ---------- Walk-ins ----------
+  function openWalkin() {
+    S.listScroll = window.scrollY;
+    $("wForm").reset(); $("wErr").hidden = true;
+    $("wHint").textContent = "Adds a row to the " + labelOf(S.tab) + " tab of the club sheet.";
+    $("wBackLabel").textContent = labelOf(S.tab) + " list";
+    showView("walkin"); window.scrollTo(0, 0);
+  }
+  $("wForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var name = $("wName").value.trim().replace(/\s+/g, " "), yob = $("wYob").value.trim();
+    if (!name) { $("wErr").textContent = "Enter the player's name."; $("wErr").hidden = false; return; }
+    if (yob && !/^(19|20)\d\d$/.test(yob)) { $("wErr").textContent = "Year of birth should look like 2014."; $("wErr").hidden = false; return; }
+    $("wSave").disabled = true; $("wErr").hidden = true;
+    call("addWalkin", S.code, S.tab, { name: name, yob: yob, position: $("wPos").value.trim(), parent: $("wParent").value.trim(), phone: $("wPhone").value.trim() }, S.who)
+      .then(function (res) {
+        return loadGroup(true).then(function () { if (res && S.players.has(res.id)) openPlayer(res.id); else backToList(); });
+      }, function (e) {
+        if (handleAuthError(e)) return;
+        $("wErr").textContent = "Couldn't add the player. Check your connection and try again."; $("wErr").hidden = false;
+      }).then(function () { $("wSave").disabled = false; });
+  });
+
+  // ---------- Wiring ----------
+  $("q").addEventListener("input", function (e) { S.q = e.target.value.trim(); renderList(); });
+  Array.prototype.forEach.call($("filters").children, function (b) {
+    b.addEventListener("click", function () {
+      S.filter = b.dataset.f;
+      Array.prototype.forEach.call($("filters").children, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      renderList();
+    });
+  });
+  var segs = document.querySelectorAll(".seg button");
+  Array.prototype.forEach.call(segs, function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.s === S.sort));
+    b.addEventListener("click", function () {
+      S.sort = b.dataset.s; store("ausc-sort", S.sort);
+      Array.prototype.forEach.call(segs, function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      renderList();
+    });
+  });
+  $("refreshBtn").addEventListener("click", function () { loadGroup(true); });
+  $("backBtn").addEventListener("click", backToList);
+  $("wBack").addEventListener("click", backToList);
+  $("addWalkin").addEventListener("click", openWalkin);
+  $("tAtt").addEventListener("click", function () { var p = S.players.get(S.current) || {}; localPatch(S.current, { attended: !p.attended }, 0); });
+  $("tOffer").addEventListener("click", function () { var p = S.players.get(S.current) || {}; localPatch(S.current, { offer: !p.offer }, 0); });
+  $("bibNo").addEventListener("input", function (e) {
+    var v = e.target.value.replace(/\D/g, "").slice(0, 3); if (v !== e.target.value) e.target.value = v;
+    var p = S.players.get(S.current) || {};
+    var patch = { bibNo: v }; if (v && !p.attended) patch.attended = true;
+    localPatch(S.current, patch, 800);
+  });
+  $("bibNo").addEventListener("blur", function () { if (S.current && S.pending.has(S.current)) flush(S.current); });
+  $("clearBib").addEventListener("click", function () { $("bibNo").value = ""; localPatch(S.current, { bibColour: "", bibNo: "" }, 0); });
+  Array.prototype.forEach.call($("status3").children, function (b) {
+    b.addEventListener("click", function () {
+      var p = S.players.get(S.current) || {};
+      localPatch(S.current, { status: p.status === b.dataset.v ? "" : b.dataset.v }, 0);
+    });
+  });
+  $("notes").addEventListener("input", function (e) { localPatch(S.current, { notes: e.target.value }, 1200); });
+  $("notes").addEventListener("blur", function () { if (S.current && S.pending.has(S.current)) flush(S.current); });
+
+  // ---------- Install as an app ----------
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  var deferred = null;
+  function showInstall() {
+    if (standalone || store("ausc-install-hidden")) return;
+    var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    $("installText").textContent = deferred ? "Install AUSC Trials on this phone for one-tap access."
+      : ios ? "Add to your home screen: tap Share, then Add to Home Screen." : "Add to your home screen from the browser menu (⋮ → Install app).";
+    $("installGo").hidden = !deferred; $("install").hidden = false;
+  }
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; showInstall(); });
+  window.addEventListener("appinstalled", function () { $("install").hidden = true; });
+  $("installGo").addEventListener("click", function () { if (!deferred) return; deferred.prompt(); deferred.userChoice.then(function () { deferred = null; $("install").hidden = true; }); });
+  $("installX").addEventListener("click", function () { store("ausc-install-hidden", "1"); $("install").hidden = true; });
+  showInstall();
+  if ("serviceWorker" in navigator) window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+
+  if (S.code && S.who) { showGate(""); $("gGo").disabled = true; $("gGo").textContent = "Opening…"; start(); } else showGate("");
+})();
+</script>
+</body>
+</html>
